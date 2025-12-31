@@ -1,0 +1,28 @@
+services:
+  webapi:
+    build:
+      context: ./fastapi
+      dockerfile: Dockerfile
+    container_name: fastapi-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    networks:
+      - app-network
+
+  grpc:
+    build:
+      context: ./grpc
+      dockerfile: Dockerfile
+    container_name: grpc-service
+    ports:
+      - "50051:50051"
+    volumes:
+      - ./data:/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
