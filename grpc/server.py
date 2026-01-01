@@ -1,12 +1,10 @@
-# server.py
 from concurrent import futures
 import grpc
 import glossary_pb2
 import glossary_pb2_grpc
-from storage import Storage
-from models import TermCreate, TermUpdate
+from shared.storage import Storage
+from shared.models import TermCreate, TermUpdate
 from grpc_reflection.v1alpha import reflection
-from datetime import datetime
 
 class GlossaryServicer(glossary_pb2_grpc.GlossaryServicer):
     def __init__(self, storage: Storage):
@@ -86,7 +84,7 @@ class GlossaryServicer(glossary_pb2_grpc.GlossaryServicer):
 
 def serve(host='[::]', port=50051):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    storage = Storage()
+    storage = Storage("glossary.db")
     glossary_pb2_grpc.add_GlossaryServicer_to_server(GlossaryServicer(storage), server)
 
     SERVICE_NAMES = (

@@ -2,7 +2,7 @@
 import sqlite3
 from typing import Optional, List
 from datetime import datetime
-from models import TermDB
+from shared.models import TermDB
 
 DB_SCHEMA = """
 CREATE TABLE IF NOT EXISTS terms (

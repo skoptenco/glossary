@@ -1,8 +1,8 @@
 services:
   webapi:
     build:
-      context: ./fastapi
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: fastapi/Dockerfile
     container_name: fastapi-service
     ports:
       - "8000:8000"
@@ -13,8 +13,8 @@ services:
 
   grpc:
     build:
-      context: ./grpc
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: grpc/Dockerfile
     container_name: grpc-service
     ports:
       - "50051:50051"

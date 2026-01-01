@@ -2,22 +2,20 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
-class TermBase(BaseModel):
+class Term(BaseModel):
     keyword: str = Field(..., min_length=1, max_length=100, description="ключевое слово (уникальное)")
-    title: Optional[str] = Field(None, max_length=200)
     description: str = Field(..., min_length=1, description="описание термина")
+    created_at: Optional[datetime] = Field(None)
+    updated_at: Optional[datetime] = Field(None)
 
-class TermCreate(TermBase):
+class TermCreate(Term):
     pass
 
 class TermUpdate(BaseModel):
-    title: Optional[str] = Field(None, max_length=200)
-    description: Optional[str] = Field(None)
+    description: str = Field(..., min_length=1, description="описание термина")
 
 class TermOut(BaseModel):
-    id: int
     keyword: str
-    title: Optional[str]
     description: str
     created_at: Optional[datetime]
     updated_at: Optional[datetime]

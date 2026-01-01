@@ -1,4 +1,3 @@
-# models.py
 from pydantic import BaseModel, constr, validator
 from typing import Optional
 from datetime import datetime
