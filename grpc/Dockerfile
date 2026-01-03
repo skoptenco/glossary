@@ -4,11 +4,13 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY grpc .
+COPY grpc ./grpc
 COPY shared ./shared
 
 VOLUME ["/app/db"]
 
 EXPOSE 50051
 
-CMD ["python", "server.py"]
+ENV PYTHONPATH=/app
+
+CMD ["python", "grpc/server.py"]

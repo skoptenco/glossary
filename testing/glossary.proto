@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package glossary;
+
+message Term {
+  string keyword = 1;
+  string description = 2;
+  string created_at = 3; // ISO datetime string (optional)
+  string updated_at = 4; // ISO datetime string (optional)
+}
+
+message ListTermsRequest {}
+
+message ListTermsResponse {
+  repeated Term terms = 1;
+}
+
+message GetTermRequest {
+  string keyword = 1;
+}
+
+message GetTermResponse {
+  Term term = 1;
+  bool found = 2;
+  string error = 3;
+}
+
+message CreateTermRequest {
+  string keyword = 1;
+  string description = 2;
+}
+
+message CreateTermResponse {
+  Term term = 1;
+  bool created = 2;
+  string error = 3;
+}
+
+message UpdateTermRequest {
+  string keyword = 1;
+  string description = 2;
+}
+
+message UpdateTermResponse {
+  Term term = 1;
+  bool updated = 2;
+  string error = 3;
+}
+
+message DeleteTermRequest {
+  string keyword = 1;
+}
+
+message DeleteTermResponse {
+  bool deleted = 1;
+  string error = 2;
+}
+
+service Glossary {
+  rpc ListTerms (ListTermsRequest) returns (ListTermsResponse);
+  rpc GetTerm (GetTermRequest) returns (GetTermResponse);
+  rpc CreateTerm (CreateTermRequest) returns (CreateTermResponse);
+  rpc UpdateTerm (UpdateTermRequest) returns (UpdateTermResponse);
+  rpc DeleteTerm (DeleteTermRequest) returns (DeleteTermResponse);
+}

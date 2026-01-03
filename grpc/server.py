@@ -84,7 +84,7 @@ class GlossaryServicer(glossary_pb2_grpc.GlossaryServicer):
 
 def serve(host='[::]', port=50051):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    storage = Storage("glossary.db")
+    storage = Storage("grpc/glossary.db")
     glossary_pb2_grpc.add_GlossaryServicer_to_server(GlossaryServicer(storage), server)
 
     SERVICE_NAMES = (

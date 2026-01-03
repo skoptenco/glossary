@@ -2,8 +2,8 @@ services:
   webapi:
     build:
       context: .
-      dockerfile: fastapi/Dockerfile
-    container_name: fastapi-service
+      dockerfile: web/Dockerfile
+    container_name: web-service
     ports:
       - "8000:8000"
     volumes:
