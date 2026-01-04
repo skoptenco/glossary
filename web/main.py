@@ -2,11 +2,23 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from typing import List
 import web.schemas as schemas
 from sqlalchemy.exc import IntegrityError
-from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from shared.storage import Storage
 
+origins = [
+    "http://localhost:5173",
+]
+
 app = FastAPI(title="Glossary API", version="1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods, including OPTIONS
+    allow_headers=["*"],  # Allows all headers
+)
 
 storage = Storage("web/glossary.db")
 
@@ -17,12 +29,12 @@ def get_storage() -> Storage:
 def list_terms(store=Depends(get_storage)):
     return store.list_terms()
 
-@app.get("/terms/{id}", response_model=schemas.TermOut)
-def read_term(id: str, store=Depends(get_storage)):
-    keyword = id.strip().lower()
+@app.get("/terms/{keyword_name}", response_model=schemas.TermOut, status_code=status.HTTP_200_OK)
+def read_term(keyword_name: str, store=Depends(get_storage)):
+    keyword = store.get_term(keyword_name.strip().lower())
     if not keyword:
         raise HTTPException(status_code=404, detail="Term not found")
-    return store.get_term(keyword)
+    return keyword
 
 @app.post("/terms", response_model=schemas.TermOut, status_code=status.HTTP_201_CREATED)
 def create_new_term(term_in: schemas.TermCreate, store=Depends(get_storage)):
@@ -49,4 +61,4 @@ def delete_term(keyword: str, store=Depends(get_storage)):
     if not term:
         raise HTTPException(status_code=404, detail="Term not found")
     store.delete_term(keyword)
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+    return 204

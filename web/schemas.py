@@ -19,6 +19,3 @@ class TermOut(BaseModel):
     description: str
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
-
-    class Config:
-        orm_mode = True
