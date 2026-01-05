@@ -2,6 +2,8 @@
 import sqlite3
 from typing import Optional, List
 from datetime import datetime
+
+from shared import Relation
 from shared.models import TermDB
 
 DB_SCHEMA = """
@@ -10,6 +12,13 @@ CREATE TABLE IF NOT EXISTS terms (
     description TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS relations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_keyword TEXT NOT NULL REFERENCES terms(keyword) ON DELETE CASCADE,
+    target_keyword TEXT NOT NULL REFERENCES terms(keyword) ON DELETE CASCADE,
+    relation_type TEXT NOT NULL
 );
 """
 
@@ -86,6 +95,72 @@ class Storage:
     def delete_term(self, keyword: str) -> bool:
         conn = self._conn()
         cur = conn.execute("DELETE FROM terms WHERE keyword = ?", (keyword,))
+        conn.commit()
+        deleted = cur.rowcount > 0
+        conn.close()
+        return deleted
+
+    def list_relations(self) -> List[Relation]:
+        conn = self._conn()
+        cur = conn.execute("SELECT * FROM relations")
+        rows = cur.fetchall()
+        conn.close()
+        result = []
+        for r in rows:
+            result.append(Relation(
+                id=r["id"],
+                source_keyword=r["source_keyword"],
+                target_keyword=r["target_keyword"],
+                relation_type=r["relation_type"]
+            ))
+        return result
+
+    def get_relation(self, relation_id: int) -> Optional[Relation]:
+        conn = self._conn()
+        cur = conn.execute("SELECT * FROM relations WHERE id = ?", (relation_id, ))
+        r = cur.fetchone()
+        conn.close()
+        if not r:
+            return None
+        return Relation(
+            id=r["id"],
+            source_keyword=r["source_keyword"],
+            target_keyword=r["target_keyword"],
+            relation_type=r["relation_type"]
+        )
+
+    def create_relation(self, source_keyword: str, target_keyword: str, relation_type: str) -> Relation:
+        conn = self._conn()
+        cur = conn.execute(
+            "INSERT INTO relations (source_keyword, target_keyword, relation_type) VALUES (?, ?, ?) RETURNING *",
+            (source_keyword, target_keyword, relation_type)
+        )
+        r = cur.fetchone()
+        conn.commit()
+        conn.close()
+        return Relation(
+            id=r["id"],
+            source_keyword=r["source_keyword"],
+            target_keyword=r["target_keyword"],
+            relation_type=r["relation_type"]
+        )
+
+    def update_relation(self, relation_id: int, source_keyword: str, target_keyword: str, relation_type: str) -> Optional[Relation]:
+        conn = self._conn()
+        cur = conn.execute(
+            "UPDATE relations SET source_keyword = ?, target_keyword = ? relation_type = ? WHERE id = ?",
+            (source_keyword, target_keyword, relation_type, relation_id)
+        )
+        conn.commit()
+        changed = cur.rowcount
+        conn.close()
+        if changed:
+            return self.get_relation(relation_id)
+        return None
+
+    def delete_relation(self, relation_id: int) -> bool:
+        conn = self._conn()
+        cur = conn.execute("DELETE FROM relations WHERE id = ?", (relation_id, ))
         conn.commit()
         deleted = cur.rowcount > 0
         conn.close()
