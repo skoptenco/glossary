@@ -8,3 +8,4 @@ grpcio-reflection==1.66.2
 protobuf==5.29.0
 typing-extensions>=4.12.2
 locust==2.42.6
+python-dotenv==1.2.1

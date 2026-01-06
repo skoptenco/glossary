@@ -4,15 +4,17 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from typing import List
 from sqlalchemy.exc import IntegrityError
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os
 
 from shared.storage import Storage
 from shared.models import TermDB, TermCreate, TermUpdate, RelationCreate, RelationUpdate, Relation
 
-origins = [
-    "http://localhost:5173",
-    "http://localhost:80",
-]
+load_dotenv()
 
+allowed_origin = os.getenv('ALLOWED_ORIGIN')
+
+origins = ["*"]
 app = FastAPI(title="Glossary API", version="1.0")
 
 app.add_middleware(
