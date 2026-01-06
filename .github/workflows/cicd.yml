@@ -1,0 +1,41 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Login to DockerHub
+      run: |
+        echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login \
+          -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+    - name: Build & Push WEB
+      run: |
+        docker build -f ./web/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/glossary-web:latest .
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/glossary-web:latest
+
+    - name: Build & Push GRPC
+      run: |
+        docker build -f ./grpc/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/glossary-grpc:latest .
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/glossary-grpc:latest
+
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd /var/www/glossary
+          sudo docker stop $(docker ps -q) || true
+          sudo docker rm   $(docker ps -aq) || true
+          sudo docker compose pull
+          sudo docker compose up -d

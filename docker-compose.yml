@@ -1,5 +1,6 @@
 services:
   webapi:
+    image: skoptenco/glossary-web
     build:
       context: .
       dockerfile: web/Dockerfile
@@ -12,6 +13,7 @@ services:
       - app-network
 
   grpc:
+    image: skoptenco/glossary-grpc
     build:
       context: .
       dockerfile: grpc/Dockerfile
