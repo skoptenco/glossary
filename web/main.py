@@ -10,6 +10,7 @@ from shared.models import TermDB, TermCreate, TermUpdate, RelationCreate, Relati
 
 origins = [
     "http://localhost:5173",
+    "http://localhost:80",
 ]
 
 app = FastAPI(title="Glossary API", version="1.0")
