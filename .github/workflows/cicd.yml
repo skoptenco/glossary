@@ -17,15 +17,10 @@ jobs:
         echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login \
           -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-    - name: Build & Push WEB
+    - name: Build & Push
       run: |
-        docker build -f ./web/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/glossary-web:latest .
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/glossary-web:latest .
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/glossary-web:latest
-
-    - name: Build & Push GRPC
-      run: |
-        docker build -f ./grpc/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/glossary-grpc:latest .
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/glossary-grpc:latest
 
     - name: Deploy to server
       uses: appleboy/ssh-action@v1.0.3
@@ -34,8 +29,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
         script: |
-          cd /var/www/glossary
-          sudo docker stop $(docker ps -q) || true
-          sudo docker rm   $(docker ps -aq) || true
-          sudo docker compose pull
-          sudo docker compose up -d
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/glossary-web:latest
+            docker stop glossary-web || true
+            docker rm glossary-web || true
+            docker run -d --name glossary-web -p 8000:8000 ${{ secrets.DOCKERHUB_USERNAME }}/glossary-web:latest
