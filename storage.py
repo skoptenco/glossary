@@ -3,12 +3,15 @@ import sqlite3
 from typing import Optional, List
 from datetime import datetime
 
-from models import TermDB, Relation
+from schemas import Term, TermDetailed, Relation
 
 DB_SCHEMA = """
 CREATE TABLE IF NOT EXISTS terms (
     keyword TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
     description TEXT NOT NULL,
+    meta_description TEXT NOT NULL,
+    full_description TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -37,52 +40,57 @@ class Storage:
         conn.commit()
         conn.close()
 
-    def list_terms(self) -> List[TermDB]:
+    def list_terms(self) -> List[Term]:
         conn = self._conn()
-        cur = conn.execute("SELECT * FROM terms ORDER BY keyword")
+        cur = conn.execute("SELECT keyword, title, description, created_at, updated_at FROM terms ORDER BY keyword")
         rows = cur.fetchall()
         conn.close()
         result = []
         for r in rows:
-            result.append(TermDB(
+            result.append(Term(
                 keyword=r["keyword"],
+                title=r["title"],
                 description=r["description"],
                 created_at=datetime.fromisoformat(r["created_at"]),
                 updated_at=datetime.fromisoformat(r["updated_at"])
             ))
         return result
 
-    def get_term(self, keyword: str) -> Optional[TermDB]:
+    def get_term(self, keyword: str) -> TermDetailed:
         conn = self._conn()
         cur = conn.execute("SELECT * FROM terms WHERE keyword = ?", (keyword,))
         r = cur.fetchone()
         conn.close()
         if not r:
             return None
-        return TermDB(
+        return TermDetailed(
             keyword=r["keyword"],
+            title=r["title"],
             description=r["description"],
+            full_description=r["full_description"],
+            meta_description=r["meta_description"],
             created_at=datetime.fromisoformat(r["created_at"]),
             updated_at=datetime.fromisoformat(r["updated_at"])
         )
 
-    def create_term(self, keyword: str, description: str) -> TermDB:
+    def create_term(self, keyword: str, title: str, description: str, meta_description: str, full_description: str) -> TermDetailed:
         now = datetime.utcnow().isoformat()
         conn = self._conn()
         conn.execute(
-            "INSERT INTO terms (keyword, description, created_at, updated_at) VALUES (?, ?, ?, ?)",
-            (keyword, description, now, now)
+            "INSERT INTO terms (keyword, title, description, meta_description, full_description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (keyword, title, description, meta_description, full_description, now, now)
         )
         conn.commit()
         conn.close()
         return self.get_term(keyword)
 
-    def update_term(self, keyword: str, description: str) -> Optional[TermDB]:
+    def update_term(self, keyword: str, title: str, description: str, meta_description: str, full_description: str) -> TermDetailed:
         now = datetime.utcnow().isoformat()
         conn = self._conn()
+        print(title, description, meta_description, full_description)
         cur = conn.execute(
-            "UPDATE terms SET description = ?, updated_at = ? WHERE keyword = ?",
-            (description, now, keyword)
+            "UPDATE terms SET title = ?, description = ?, meta_description = ?, full_description = ?, updated_at = ? WHERE keyword = ?",
+            (title, description, meta_description, full_description, now, keyword)
         )
         conn.commit()
         changed = cur.rowcount

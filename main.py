@@ -1,20 +1,25 @@
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, logger
 from typing import List
 from sqlalchemy.exc import IntegrityError
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
+import logging
 
 from storage import Storage
-from models import TermDB, TermCreate, TermUpdate, RelationCreate, RelationUpdate, Relation
+from schemas import Term, TermDetailed, TermCreate, TermUpdate, RelationCreate, RelationUpdate, Relation
+from utils import concat_objects
 
 load_dotenv()
 
 allowed_origin = os.getenv('ALLOWED_ORIGIN')
 
 origins = ["*"]
+
+# logger = logging.getLogger(__name__)
+
 app = FastAPI(title="Glossary API", version="1.0")
 
 app.add_middleware(
@@ -27,38 +32,50 @@ app.add_middleware(
 
 storage = Storage("glossary.db")
 
+
 def get_storage() -> Storage:
     return storage
 
-@app.get("/terms", response_model=List[TermDB], status_code=status.HTTP_200_OK)
+
+@app.get("/terms", response_model=List[Term], status_code=status.HTTP_200_OK)
 def list_terms(store=Depends(get_storage)):
     return store.list_terms()
 
-@app.get("/terms/{keyword_name}", response_model=TermDB, status_code=status.HTTP_200_OK)
+
+@app.get("/terms/{keyword_name}", response_model=TermDetailed, status_code=status.HTTP_200_OK)
 def read_term(keyword_name: str, store=Depends(get_storage)):
     keyword = store.get_term(keyword_name.strip().lower())
     if not keyword:
         raise HTTPException(status_code=404, detail="Term not found")
     return keyword
 
-@app.post("/terms", response_model=TermDB, status_code=status.HTTP_201_CREATED)
+
+@app.post("/terms", response_model=TermDetailed, status_code=status.HTTP_201_CREATED)
 def create_new_term(term_in: TermCreate, store=Depends(get_storage)):
     existing = store.get_term(term_in.keyword)
     if existing:
         raise HTTPException(status_code=400, detail="Term with this keyword already exists")
     try:
-        term = store.create_term(term_in.keyword, term_in.description)
+        term = store.create_term(term_in.keyword, term_in.title, term_in.description, term_in.meta_description,
+                                 term_in.full_description)
     except IntegrityError:
         raise HTTPException(status_code=400, detail="Integrity error — maybe duplicate keyword")
     return term
 
-@app.put("/terms/{keyword}", response_model=TermDB, status_code=status.HTTP_202_ACCEPTED)
+
+@app.patch("/terms/{keyword}", response_model=TermDetailed, status_code=status.HTTP_202_ACCEPTED)
 def update_existing_term(keyword: str, updates: TermUpdate, store=Depends(get_storage)):
+    logger.logger.info(updates)
     term = store.get_term(keyword)
     if not term:
         raise HTTPException(status_code=404, detail="Term not found")
-    term = store.update_term(keyword, updates.description)
+    term = store.update_term(keyword,
+                             updates.title or term.title,
+                             updates.description or term.description,
+                             updates.meta_description or term.meta_description,
+                             updates.full_description or term.full_description)
     return term
+
 
 @app.delete("/terms/{keyword}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_term(keyword: str, store=Depends(get_storage)):
@@ -68,9 +85,11 @@ def delete_term(keyword: str, store=Depends(get_storage)):
     store.delete_term(keyword)
     return 204
 
+
 @app.get("/relations", response_model=List[Relation], status_code=status.HTTP_200_OK)
-def list_relations(store =Depends(get_storage)):
+def list_relations(store=Depends(get_storage)):
     return store.list_relations()
+
 
 @app.get("/relations/{relation_id}", response_model=Relation, status_code=status.HTTP_200_OK)
 def get_relation(relation_id: UUID, store=Depends(get_storage)):
@@ -79,21 +98,25 @@ def get_relation(relation_id: UUID, store=Depends(get_storage)):
         raise HTTPException(status_code=404, detail="Relation not found")
     return relation
 
+
 @app.post("/relations", response_model=Relation, status_code=status.HTTP_201_CREATED)
 def create_new_relation(relation_in: RelationCreate, store=Depends(get_storage)):
     try:
-        relation = store.create_relation(relation_in.source_keyword, relation_in.target_keyword, relation_in.relation_type)
+        relation = store.create_relation(relation_in.source_keyword, relation_in.target_keyword,
+                                         relation_in.relation_type)
     except IntegrityError:
         raise HTTPException(status_code=400, detail="Integrity error")
     return relation
 
-@app.put("/relations/{relation_id}", response_model=Relation, status_code=status.HTTP_202_ACCEPTED)
+
+@app.patch("/relations/{relation_id}", response_model=Relation, status_code=status.HTTP_202_ACCEPTED)
 def update_existing_relation(relation_id: int, updates: RelationUpdate, store=Depends(get_storage)):
     term = store.get_relation(relation_id)
     if not term:
         raise HTTPException(status_code=404, detail="Relation not found")
     term = store.update_relation(relation_id, updates.source_keyword, updates.target_keyword, updates.relation_type)
     return term
+
 
 @app.delete("/relations/{relation_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_relation(relation_id: int, store=Depends(get_storage)):
